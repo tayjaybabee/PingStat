@@ -1,0 +1,4 @@
+DEBUG:PingPing.logging:Hello
+DEBUG:PingPing.logging:Hello
+ERROR:PingPing.logging:123 will not be highlighted
+ERROR:PingPing.logging:[bold red blink]Server is shutting down![/]
