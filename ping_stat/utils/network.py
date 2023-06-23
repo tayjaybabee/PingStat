@@ -36,18 +36,17 @@ legal or otherwise, caused by its use. Pinging a target is not a passive operati
 intrusion detection systems or firewall logs. Irresponsible use of this tool could potentially cause a
 denial of service to the target system's network services, or your own.
 """
-
-
-from time import sleep, time
+from ping3 import ping as _ping
 from ping_stat.errors import RedundantWorkOrderError, WorkerAlreadyStartedError
 
 from ping_stat.utils import gather_times
 from ping_stat.utils.workers import PingMonitor, PingWorker
-from statistics import mean, median
-from ping3 import ping as _ping
 from pypattyrn.behavioral.null import Null
-from threading import Thread
+import queue
 from rich.console import Console
+from statistics import mean, median
+from threading import Thread
+from time import sleep, time
 
 
 console = Console()
@@ -164,7 +163,10 @@ class Ping:
 
         self.__ping_worker = None
 
+        self.__queue = None
+
         if self.__continuous_ping:
+            self.__queue = queue.Queue()
             self.__ping_worker = self.create_worker()
             if live_mode is not None:
                 self.live_mode = True
@@ -351,6 +353,14 @@ class Ping:
             raise ValueError('"timeout" must be positive')
 
         self.__timeout = int(new)
+
+    @property
+    def queue(self):
+        return self.__queue
+
+    @queue.deleter
+    def queue(self):
+        return self.__queue.empty()
 
     @property
     def results(self):

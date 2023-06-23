@@ -1,8 +1,8 @@
-
 from inspy_logger import InspyLogger
 from ping_stat.config.arguments import ARGUMENTS, PROG_NAME
 from ping_stat.utils import TTLTest
 from ping_stat import Ping
+from time import sleep
 
 LOG_LEVEL = ARGUMENTS.log_level
 
@@ -12,20 +12,28 @@ if not isl.device.started:
     MOD_LOG = isl.device.start()
     MOD_LOG.debug(f'Logging started for {PROG_NAME}')
 
+ping = None
+
 def main():
+    global ping
     log = isl.device.add_child(f'{PROG_NAME}.main')
     log.debug('Starting ping test...')
-    ping = Ping(target=ARGUMENTS.target, auto_run=True, monitor_mode=True, interval=ARGUMENTS.interval)
 
+    ping = Ping(target=ARGUMENTS.target, auto_run=True, live_mode=True, continuous_ping=True, interval=ARGUMENTS.interval)
+
+    try:
+        while ping.monitoring:
+            sleep(.3)
+    except KeyboardInterrupt:
+        print("Stopping ping monitoring...")
+        ping.stop_monitoring()
 
 if __name__ == '__main__':
     if (
-        ARGUMENTS.subcommands
-        and ARGUMENTS.subcommands.replace('-', '_').lower() == 'ttl_test'
+            ARGUMENTS.subcommands
+            and ARGUMENTS.subcommands.replace('-', '_').lower() == 'ttl_test'
     ):
         print('Received ttl test command')
         t_test = TTLTest()
 
     main()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

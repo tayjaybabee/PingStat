@@ -69,7 +69,7 @@ class PingMonitor:
                 avg_style = 'green' if current_avg < self.last_avg else 'red'
                 console.print(
                     f'[bold]Last ping time: [/][{cur_style}]{self.ping_object.latest[-1]}[/]'
-                    f'[bold] | Average ping time:[/][{avg_style}]{current_avg}[/]'
+                    f'[bold] | Average ping time: [/][{avg_style}]{current_avg}[/]'
                 )
                 self.last_avg = current_avg
 

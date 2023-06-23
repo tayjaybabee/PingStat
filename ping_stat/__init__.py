@@ -10,7 +10,7 @@ from pypattyrn.behavioral.null import Null
 from rich.console import Console
 from ping_stat.logging import LOG_DEVICE
 from ping_stat.utils.workers import PingWorker
-
+from ping_stat.utils.network import Ping
 
 console = Console()
 
