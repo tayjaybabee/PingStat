@@ -13,7 +13,7 @@ __PROG__ = 'PingPing'
 __DESCRIPTION__ = f'{__PROG__} is a simple ping-time monitoring service that can assist in monitoring for and ' \
                   f'documenting outages from your ISP.'
 
-__VERSION__ = '0.1.1'
+__VERSION__ = '1.0'
 
 __VERSION_FULL__ = f'{__PROG__} v{__VERSION__} by {__AUTHOR__}'
 

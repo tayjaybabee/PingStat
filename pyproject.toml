@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ping_stat"
-version = "0.1.1"
+version = "1.0"
 description = "A Python-based networking tool for ping operations."
 authors = ["Taylor B. <tayjaybabee@gmail.com>"]
 readme = 'README.md'
@@ -26,7 +26,7 @@ classifiers = [
 ]
 
 [tool.poetry.scripts]
-ping_stat = 'main:main'
+ping-stat = 'ping_stat.main:main'
 
 [tool.poetry.dependencies]
 python = "^3.9"
