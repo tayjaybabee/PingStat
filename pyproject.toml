@@ -29,7 +29,7 @@ classifiers = [
 ping-stat = 'ping_stat.main:main'
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.12"
 ping3 = "^4.0.4"
 inspy-logger = "^2.2"
 pypattyrn = "^1.2"
@@ -37,12 +37,14 @@ rich = "^13.3.5"
 bokeh = "^3.1.1"
 flask = "^2.3.2"
 pynput = "^1.7.6"
+netifaces = "^0.11.0"
 
 [tool.poetry.dev-dependencies]
 
 [tool.poetry.group.dev.dependencies]
 ptipython = "^1.0.1"
 faker = "^18.11.1"
+pyinstaller = "^5.12.0"
 
 
 [tool.poetry.group.docs.dependencies]

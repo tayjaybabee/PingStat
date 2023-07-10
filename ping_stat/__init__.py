@@ -8,13 +8,26 @@ from datetime import datetime
 from pypattyrn.behavioral.null import Null
 
 from rich.console import Console
-from ping_stat.logging import LOG_DEVICE
+from ping_stat.ps_logging import LOG_DEVICE
 from ping_stat.utils.workers import PingWorker
 from ping_stat.utils.network import Ping
+from ping_stat.__about__ import __DESCRIPTION__ as PROGRAM_DESCRIPTION
+
+
 
 console = Console()
 
 
+def print_description(skip_newlines=False):
+    """
+    Print the program's description to the console.
+
+    Returns:
+        None
+
+    """
+    n = '' if skip_newlines else '\n'
+    print(f'{n}{PROGRAM_DESCRIPTION}{n}', end=n)
 
 
 # def ping_monitor(ping_object):
@@ -52,9 +65,3 @@ def monitor_mean(ping_object):
         ping = ping_object
         hist = ping.history[-1][-1]
         print(f'Mean: {mean(hist)}')
-
-
-
-
-        
-    

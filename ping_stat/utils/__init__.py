@@ -5,21 +5,22 @@ File:
   Name: __init__.py
   Filepath: ping_stat/utils
 """
-from inspy_logger import InspyLogger
 import time
 from ping3 import ping, verbose_ping
-from ping_stat.logging import add_child as add_child_logger, PROG_NAME
+from ping_stat.ps_logging import LOG_DEVICE, PROG_NAME
 from rich.logging import RichHandler
 import inspect
 from ping_stat.utils.decorators import validate_properties
 from statistics import mean, median
 
 
+LOGGER = LOG_DEVICE.get_child(not __file__.rsplit)
+
 try:
     _ = LOGGER
 
 except (ModuleNotFoundError, NameError) as e:
-    LOGGER = add_child_logger(f'{PROG_NAME}.utils')
+    _ = add_child_logger(f'{PROG_NAME}.utils')
     LOGGER.debug(f'Loading {LOGGER.name}')
 
 

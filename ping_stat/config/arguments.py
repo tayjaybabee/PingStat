@@ -102,7 +102,6 @@ class PingPingArguments(ArgumentParser):
         
 
 args = PingPingArguments()
-ARGUMENTS = args.parse_args()
 
 
 

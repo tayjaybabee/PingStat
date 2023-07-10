@@ -36,6 +36,7 @@ legal or otherwise, caused by its use. Pinging a target is not a passive operati
 intrusion detection systems or firewall logs. Irresponsible use of this tool could potentially cause a
 denial of service to the target system's network services, or your own.
 """
+import netifaces
 from ping3 import ping as _ping
 from ping_stat.errors import RedundantWorkOrderError, WorkerAlreadyStartedError
 
@@ -45,9 +46,15 @@ from pypattyrn.behavioral.null import Null
 import queue
 from rich.console import Console
 from statistics import mean, median
-from threading import Thread
 from time import sleep, time
+from ping_stat.ps_logging import add_child, Loggable
+from ping_stat.ps_logging.helpers import is_number
+import inspect
 
+
+LOG_DEVICE = add_child('network')
+MOD_LOG = LOG_DEVICE.logger
+MOD_LOG.debug(f'Started logging for {MOD_LOG.name}')
 
 console = Console()
 
@@ -55,7 +62,25 @@ console = Console()
 track_mean = False
 
 
-class Ping:
+def get_gateway():
+    """
+
+
+    Returns:
+
+    """
+    log_name = 'get_gateway'
+    full_log_name = f'{LOG_DEVICE.logger.name}.{log_name}'
+    log_dev = LOG_DEVICE.get_child(log_name)
+    log = log_dev.logger
+    log.debug('Created')
+    gateways = netifaces.gateways()
+    return gateways['default'][netifaces.AF_INET][0]
+
+
+
+
+class Ping(Loggable):
     """
     A class for performing ping operations on a target.
 
@@ -92,8 +117,6 @@ class Ping:
         ping.ping()
         # [15.132, 15.269, 15.265]
     """
-    from ping_stat.logging import add_child
-
     __cls_log = add_child('PingPing.Ping')
 
     __auto_run = False
@@ -110,7 +133,7 @@ class Ping:
     def __init__(
             self,
             target: str,
-            log_device=Null(),
+            parent_logging_device=LOG_DEVICE,
             auto_run=__auto_run,
             continuous_ping=None,
             timeout=__timeout,
@@ -119,7 +142,8 @@ class Ping:
             packet_size=__size,
             live_mode=None,
             debug_mode=False,
-            gui_mode=False
+            gui_mode=False,
+            **kwargs
     ):
         """
         Initializes the Ping object.
@@ -139,8 +163,9 @@ class Ping:
                 If any argument is of the wrong type.
         """
         global monitoring
-        self.log_device = log_device
-        log = log_device.add_child('PingPing.Ping.init')
+        super(Ping, self).__init__(parent_logging_device)
+        func_log_device = parent_logging_device.get_child('Ping')
+        log = func_log_device.logger
 
         self.runs = runs
 
@@ -159,7 +184,10 @@ class Ping:
         self.interval = interval
         log.debug(f'Ping interval: {self.interval}')
 
+        log.debug(f'{kwargs}')
+
         self.__debug_mode = debug_mode
+        log.debug()
 
         self.__ping_worker = None
 
@@ -178,10 +206,18 @@ class Ping:
         else:
             self.__ping_worker = None
 
+        # Configure packet size
+        self.__packet_size = packet_size or self.__packet_size
+
         if self.auto_run:
             self.start()
 
 
+    @property
+    def argument_state(self):
+        args = locals()
+        args.pop('self')
+        return args
 
 
     @property
@@ -211,17 +247,16 @@ class Ping:
         self.__auto_run = new
 
     @property
-    def continuous_ping(self):
-        return self.__continuous_ping
-
-    @property
     def interval(self) -> int:
         return self.__interval
 
     @interval.setter
     def interval(self, new):
+
         if not isinstance(new, int):
-            raise TypeError('"interval" must be of type "int".')
+            new = is_number(new)
+            if not new:
+                raise TypeError('"interval" must be of type "int".')
 
         self.__interval = new
 
@@ -347,7 +382,9 @@ class Ping:
                 If new is not positive.
         """
         if not isinstance(new, (int, float)):
-            raise TypeError('"timeout" must be a float or an integer')
+            new = is_number(self.timeout)
+            if not new:
+                raise TypeError('"timeout" must be a float or an integer')
 
         if new <= 0:
             raise ValueError('"timeout" must be positive')
@@ -360,7 +397,7 @@ class Ping:
 
     @queue.deleter
     def queue(self):
-        return self.__queue.empty()
+        self.__queue.empty()
 
     @property
     def results(self):
@@ -389,7 +426,8 @@ class Ping:
             ValueError:
                 If new is not positive.
         """
-        log = self.log_device.add_child('PingPing.Ping.PropSet:run')
+        log_device = self.create_child_logger('PropSet:run')
+        log = log_device.logger
 
         log.debug(f'Received new value of {new}')
 
@@ -414,16 +452,10 @@ class Ping:
 
     @property
     def status(self):
-        if self.__debug_mode:
-            pass
-        status = {
+        return {
             'continuous_mode': {
                 'enabled': self.continuous_ping,
-                'state':
-                    {
-                        'alive': True if self.ping_worker.thread.is_alive() else False
-                    }
-
+                'state': {'alive': bool(self.ping_worker.thread.is_alive())},
             }
         }
 
@@ -459,22 +491,23 @@ class Ping:
         #     for _ in range(self.runs)
         # ]
         pings = []
+        log_device = self.log_device.get_child('PingPing.Ping.ping')
+        log = log_device.logger
 
         for _ in range(self.runs):
-            log = self.log_device.add_child('PingPing.Ping.ping')
-            log.debug(f'Pinging {self.target} with a payload of {self.packet_size} bytes and a titmeout of '
-                      f'{self.timeout}')
+
+            log.debug(f'({_ + 1} of {self.runs}) - Pinging {self.target} with a payload of {self.packet_size} bytes and'
+                      f' a timeout of {self.timeout}.')
 
 
             # Ping the target with the given parameters and app end this
             # to the list of ping results.
-            pings.append(
-                _ping(
-                    self.target,
-                    size=self.packet_size,
-                    timeout=int(self.timeout)
-                )
+            ping_res = _ping(
+                self.target,
+                size=self.packet_size,
+                timeout=int(self.timeout)
             )
+            pings.append(ping_res or self.timeout)
 
             sleep(self.interval)
 
@@ -484,6 +517,7 @@ class Ping:
         self.__results = pings
 
         return pings
+
 
 
     def generate_report(self):
@@ -532,6 +566,27 @@ class Ping:
         self.monitoring = False
         self.ping_worker.join()
 
+
+    def __is_member__(self):
+        log_device = self.log_device.get_child('__is_member__')
+        log = log_device.logger
+
+        current_frame = inspect.currentframe()
+        log.debug(f'Current frame: {current_frame}')
+
+        caller_frame = current_frame.f_back
+        log.debug(f'Caller frame: {caller_frame}')
+
+        caller_self = caller_frame.f_locals.get('self', None)
+        log.debug(f'Caller self: {caller_self}')
+
+        log.debug('Checking if caller is a member of this class...')
+        if not isinstance(caller_self, Ping):
+            raise PermissionError(
+                'Access denied.\n'
+                f'Method can only be accessed by members of the same class. {caller_self.__name__} is not such a member')
+
+        log.debug(f'Access granted to {caller_self.__class__.__name__}')
 
 
 """
